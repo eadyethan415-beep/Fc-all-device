@@ -1,0 +1,38 @@
+
+-- DAY & NIGHT CYCLE
+-- Place inside ServerScriptService
+
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+
+local DAY_LENGTH = 300   -- 5 minutes
+local NIGHT_LENGTH = 300 -- 5 minutes
+
+-- Clock times
+local DAY_START = 6
+local NIGHT_START = 18
+
+-- Start at daytime
+Lighting.ClockTime = DAY_START
+
+local function transitionTo(targetTime, duration)
+	local tween = TweenService:Create(
+		Lighting,
+		TweenInfo.new(
+			duration,
+			Enum.EasingStyle.Linear
+		),
+		{ClockTime = targetTime}
+	)
+
+	tween:Play()
+	tween.Completed:Wait()
+end
+
+while true do
+	-- Day: 6 AM to 6 PM
+	transitionTo(NIGHT_START, DAY_LENGTH)
+
+	-- Night: 6 PM to 6 AM
+	transitionTo(DAY_START, NIGHT_LENGTH)
+end
