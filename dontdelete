@@ -1,0 +1,484 @@
+-- CLIMAX GUI - FULL CLONE & WORKSPACE NPC KILL SUPPORT
+-- StarterPlayerScripts > LocalScript
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
+local camera = workspace.CurrentCamera
+
+-- Wait until the LocalPlayer exists
+local player = Players.LocalPlayer
+while not player do
+	task.wait(0.1)
+	player = Players.LocalPlayer
+end
+
+local playerGui = player:WaitForChild("PlayerGui", 10)
+if not playerGui then return end
+
+-- Remove duplicate GUI if it already exists
+local oldGui = playerGui:FindFirstChild("ClimaxBarGUI")
+if oldGui then
+	oldGui:Destroy()
+end
+
+-- Detect Device Type
+local viewport = camera and camera.ViewportSize or Vector2.new(1920, 1080)
+local isTouch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local isTablet = isTouch and (viewport.X >= 768 or viewport.Y >= 768)
+local isMobilePhone = isTouch and not isTablet
+local isConsole = GuiService:IsTenFootInterface()
+
+-- Set Device Layout Configs
+local config = {
+	barSize = UDim2.new(0, 62, 0, 340),
+	titleHeight = 28,
+	innerPadding = 42,
+	innerOffset = -54,
+	bobOffset = -4,
+
+	emoteSize = UDim2.new(0, 36, 0, 36),
+	emotePos = UDim2.new(0, 95, 0.44, -170),
+	emoteTextSize = 16,
+
+	hitboxSize = UDim2.new(0, 115, 0, 44),
+	hitboxPos = UDim2.new(1, -15, 0.5, 0),
+	hitboxMinText = 10,
+	hitboxMaxText = 15
+}
+
+if isMobilePhone then
+	config.barSize = UDim2.new(0, 110, 0, 240)
+	config.titleHeight = 28
+	config.innerPadding = 40
+	config.innerOffset = -50
+	config.bobOffset = -3
+
+	config.emoteSize = UDim2.new(0, 40, 0, 40)
+	config.emotePos = UDim2.new(0, 135, 0.44, -120)
+	config.emoteTextSize = 18
+
+	config.hitboxSize = UDim2.new(0, 110, 0, 40)
+	config.hitboxPos = UDim2.new(1, -15, 0.5, 0)
+	config.hitboxMinText = 10
+	config.hitboxMaxText = 15
+elseif isTablet then
+	config.barSize = UDim2.new(0, 86, 0, 460)
+	config.titleHeight = 32
+	config.innerPadding = 46
+	config.innerOffset = -60
+	config.bobOffset = -4
+
+	config.emoteSize = UDim2.new(0, 46, 0, 46)
+	config.emotePos = UDim2.new(0, 140, 0.44, -230)
+	config.emoteTextSize = 20
+
+	config.hitboxSize = UDim2.new(0, 140, 0, 55)
+	config.hitboxPos = UDim2.new(1, -22, 0.5, 0)
+	config.hitboxMinText = 12
+	config.hitboxMaxText = 20
+elseif isConsole then
+	config.barSize = UDim2.new(0, 100, 0, 560)
+	config.titleHeight = 48
+	config.innerPadding = 68
+	config.innerOffset = -90
+	config.bobOffset = -8
+
+	config.emoteSize = UDim2.new(0, 54, 0, 54)
+	config.emotePos = UDim2.new(0, 160, 0.44, -280)
+	config.emoteTextSize = 24
+
+	config.hitboxSize = UDim2.new(0, 170, 0, 68)
+	config.hitboxPos = UDim2.new(1, -30, 0.5, 0)
+	config.hitboxMinText = 16
+	config.hitboxMaxText = 24
+end
+
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "ClimaxBarGUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
+
+------------------------------------------------------------------
+-- MAIN CLIMAX BAR
+------------------------------------------------------------------
+local outer = Instance.new("Frame")
+outer.Name = "ClimaxBar"
+outer.AnchorPoint = Vector2.new(0, 0.5)
+outer.Position = UDim2.new(0, 15, 0.44, 0)
+outer.Size = config.barSize
+outer.BackgroundColor3 = Color3.fromRGB(142, 112, 190)
+outer.BackgroundTransparency = 0.3
+outer.BorderSizePixel = 0
+outer.Parent = gui
+
+local outerCorner = Instance.new("UICorner")
+outerCorner.CornerRadius = UDim.new(0, 10)
+outerCorner.Parent = outer
+
+local outline = Instance.new("UIStroke")
+outline.Color = Color3.fromRGB(27, 17, 39)
+outline.Thickness = 2.5
+outline.Parent = outer
+
+local outerGradient = Instance.new("UIGradient")
+outerGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(115, 77, 172)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 174, 215))
+})
+outerGradient.Rotation = 90
+outerGradient.Parent = outer
+
+-- CLIMAX title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Position = UDim2.new(0.5, 0, 0, config.titleHeight / 2 + 4)
+title.Size = UDim2.new(1, -4, 0, config.titleHeight)
+title.BackgroundTransparency = 1
+title.Text = "CLIMAX"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = outer
+
+local textConstraint = Instance.new("UITextSizeConstraint")
+textConstraint.MinTextSize = 10
+textConstraint.MaxTextSize = 24
+textConstraint.Parent = title
+
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Color = Color3.fromRGB(65, 35, 95)
+titleStroke.Thickness = 1.2
+titleStroke.Parent = title
+
+-- Inner purple bar
+local inner = Instance.new("Frame")
+inner.Name = "InnerBar"
+inner.AnchorPoint = Vector2.new(0.5, 0)
+inner.Position = UDim2.new(0.5, 0, 0, config.innerPadding)
+inner.Size = UDim2.new(0, config.barSize.X.Offset - 24, 1, config.innerOffset)
+inner.BackgroundColor3 = Color3.fromRGB(73, 0, 130)
+inner.BackgroundTransparency = 0.3
+inner.ClipsDescendants = true
+inner.BorderSizePixel = 0
+inner.Parent = outer
+
+local innerCorner = Instance.new("UICorner")
+innerCorner.CornerRadius = UDim.new(0, 8)
+innerCorner.Parent = inner
+
+local innerGradient = Instance.new("UIGradient")
+innerGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 0, 95)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(28, 0, 65))
+})
+innerGradient.Rotation = 90
+innerGradient.Parent = inner
+
+-- Main Bar Fill Frame
+local fillFrame = Instance.new("Frame")
+fillFrame.Name = "FillFrame"
+fillFrame.AnchorPoint = Vector2.new(0, 1)
+fillFrame.Position = UDim2.new(0, 0, 1, 0)
+fillFrame.Size = UDim2.new(1, 0, 0, 0)
+fillFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+fillFrame.BorderSizePixel = 0
+fillFrame.Parent = inner
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0, 6)
+fillCorner.Parent = fillFrame
+
+-- Floating animation for bar
+local mainOriginalPos = outer.Position
+local mainBob = TweenService:Create(
+	outer,
+	TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+	{
+		Position = mainOriginalPos + UDim2.new(0, 0, 0, config.bobOffset),
+		Rotation = 3
+	}
+)
+mainBob:Play()
+
+------------------------------------------------------------------
+-- LEVEL UP POPUP & PROGRESS SYSTEM
+------------------------------------------------------------------
+local currentKills = 0
+local maxKills = 5
+
+local levelUpLabel = Instance.new("TextLabel")
+levelUpLabel.Name = "LevelUpLabel"
+levelUpLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+levelUpLabel.Position = UDim2.new(0.5, 0, 0.3, 0)
+levelUpLabel.Size = UDim2.new(0, 300, 0, 60)
+levelUpLabel.BackgroundTransparency = 1
+levelUpLabel.Text = "LEVEL UP!"
+levelUpLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+levelUpLabel.TextScaled = true
+levelUpLabel.Font = Enum.Font.GothamBlack
+levelUpLabel.Visible = false
+levelUpLabel.Parent = gui
+
+local levelStroke = Instance.new("UIStroke")
+levelStroke.Color = Color3.fromRGB(80, 50, 0)
+levelStroke.Thickness = 3
+levelStroke.Parent = levelUpLabel
+
+local function playLevelUpAnimation()
+	levelUpLabel.Visible = true
+	levelUpLabel.TextTransparency = 0
+	levelUpLabel.Position = UDim2.new(0.5, 0, 0.35, 0)
+	levelUpLabel.Size = UDim2.new(0, 100, 0, 20)
+
+	local popTween = TweenService:Create(
+		levelUpLabel,
+		TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{
+			Position = UDim2.new(0.5, 0, 0.28, 0),
+			Size = UDim2.new(0, 320, 0, 70)
+		}
+	)
+	popTween:Play()
+
+	task.delay(1.2, function()
+		local fadeTween = TweenService:Create(
+			levelUpLabel,
+			TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{
+				TextTransparency = 1,
+				Position = UDim2.new(0.5, 0, 0.22, 0)
+			}
+		)
+		fadeTween:Play()
+		fadeTween.Completed:Connect(function()
+			levelUpLabel.Visible = false
+		end)
+	end)
+end
+
+local function addKillChunk()
+	currentKills = math.min(currentKills + 1, maxKills)
+	local targetScale = currentKills / maxKills
+
+	local fillTween = TweenService:Create(
+		fillFrame,
+		TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Size = UDim2.new(1, 0, targetScale, 0) }
+	)
+	fillTween:Play()
+
+	if currentKills >= maxKills then
+		task.delay(0.4, function()
+			playLevelUpAnimation()
+
+			local flashTween = TweenService:Create(
+				fillFrame,
+				TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 3, true),
+				{ BackgroundTransparency = 0.8 }
+			)
+			flashTween:Play()
+
+			flashTween.Completed:Connect(function()
+				currentKills = 0
+				fillFrame.BackgroundTransparency = 0
+				fillFrame.Size = UDim2.new(1, 0, 0, 0)
+			end)
+		end)
+	end
+end
+
+-- Expose function globally so other scripts can call _G.AddClimaxKill()
+_G.AddClimaxKill = addKillChunk
+
+------------------------------------------------------------------
+-- AUTOMATIC KILL DETECTION (PLAYERS, WORKSPACE CLONES & NPCS)
+------------------------------------------------------------------
+-- 1. Leaderstats Kills listener
+task.spawn(function()
+	local leaderstats = player:WaitForChild("leaderstats", 5)
+	if leaderstats then
+		local kills = leaderstats:FindFirstChild("Kills") or leaderstats:FindFirstChild("kills")
+		if kills then
+			kills.Changed:Connect(function()
+				addKillChunk()
+			end)
+		end
+	end
+end)
+
+-- 2. Humanoid death tracker for any model in Workspace (Clones/NPCs/Players)
+local trackedHumanoids = {}
+
+local function trackHumanoid(model)
+	if not model:IsA("Model") or model == player.Character then return end
+
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid and not trackedHumanoids[humanoid] then
+		trackedHumanoids[humanoid] = true
+		humanoid.Died:Connect(function()
+			local creatorTag = humanoid:FindFirstChild("creator")
+			-- Triggers if tagged by player OR if the model is a clone/dummy/NPC
+			if (creatorTag and creatorTag.Value == player) or string.find(model.Name:lower(), "clone") or string.find(model.Name:lower(), "dummy") or model:FindFirstChild("IsClone") then
+				addKillChunk()
+			end
+		end)
+	end
+end
+
+-- Scan existing Workspace models
+for _, obj in ipairs(workspace:GetDescendants()) do
+	trackHumanoid(obj)
+end
+
+-- Listen for new clones or NPCs spawned into Workspace
+workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("Model") then
+		task.wait(0.1)
+		trackHumanoid(obj)
+	end
+end)
+
+------------------------------------------------------------------
+-- ANIMATED EMOTE BUTTON
+------------------------------------------------------------------
+local emoteButton = Instance.new("TextButton")
+emoteButton.Name = "EmoteButton"
+emoteButton.AnchorPoint = Vector2.new(0, 0)
+emoteButton.Position = config.emotePos
+emoteButton.Size = config.emoteSize
+emoteButton.BackgroundColor3 = Color3.fromRGB(142, 112, 190)
+emoteButton.BackgroundTransparency = 0.3
+emoteButton.BorderSizePixel = 0
+emoteButton.Text = "🕺"
+emoteButton.TextSize = config.emoteTextSize
+emoteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+emoteButton.Font = Enum.Font.GothamBold
+emoteButton.Parent = gui
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = emoteButton
+
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.fromRGB(27, 17, 39)
+btnStroke.Thickness = 2
+btnStroke.Parent = emoteButton
+
+local btnGradient = Instance.new("UIGradient")
+btnGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(115, 77, 172)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 174, 215))
+})
+btnGradient.Rotation = 90
+btnGradient.Parent = emoteButton
+
+local btnOriginalPos = emoteButton.Position
+local buttonFloat = TweenService:Create(
+	emoteButton,
+	TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+	{
+		Position = btnOriginalPos + UDim2.new(0, 3, 0, 6),
+		Rotation = -6
+	}
+)
+buttonFloat:Play()
+
+local isClicking = false
+emoteButton.MouseButton1Click:Connect(function()
+	if isClicking then return end
+	isClicking = true
+
+	local clickPop = TweenService:Create(
+		emoteButton,
+		TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Size = config.emoteSize + UDim2.new(0, 6, 0, 6) }
+	)
+	local clickReset = TweenService:Create(
+		emoteButton,
+		TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Size = config.emoteSize }
+	)
+
+	clickPop:Play()
+	clickPop.Completed:Connect(function()
+		clickReset:Play()
+		isClicking = false
+	end)
+
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid:WaitForChild("Animator")
+		local animation = Instance.new("Animation")
+		animation.AnimationId = "rbxassetid://507770239"
+
+		local track = animator:LoadAnimation(animation)
+		track.Priority = Enum.AnimationPriority.Action
+		track:Play()
+	end
+end)
+
+------------------------------------------------------------------
+-- ANIMATED HITBOX TOGGLE BUTTON (Right Side)
+------------------------------------------------------------------
+local hitboxButton = Instance.new("TextButton")
+hitboxButton.Name = "HitboxButton"
+hitboxButton.AnchorPoint = Vector2.new(1, 0.5)
+hitboxButton.Position = config.hitboxPos
+hitboxButton.Size = config.hitboxSize
+hitboxButton.BackgroundColor3 = Color3.fromRGB(180, 140, 220)
+hitboxButton.BackgroundTransparency = 0.3
+hitboxButton.BorderSizePixel = 0
+hitboxButton.Text = "Hitboxes: Off"
+hitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+hitboxButton.TextScaled = true
+hitboxButton.Font = Enum.Font.GothamBold
+hitboxButton.Parent = gui
+
+local hbCorner = Instance.new("UICorner")
+hbCorner.CornerRadius = UDim.new(0, 10)
+hbCorner.Parent = hitboxButton
+
+local hbStroke = Instance.new("UIStroke")
+hbStroke.Color = Color3.fromRGB(45, 20, 65)
+hbStroke.Thickness = 2
+hbStroke.Parent = hitboxButton
+
+local hbConstraint = Instance.new("UITextSizeConstraint")
+hbConstraint.MinTextSize = config.hitboxMinText
+hbConstraint.MaxTextSize = config.hitboxMaxText
+hbConstraint.Parent = hitboxButton
+
+local hbGradient = Instance.new("UIGradient")
+hbGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(160, 120, 200)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 180, 240))
+})
+hbGradient.Rotation = 90
+hbGradient.Parent = hitboxButton
+
+local hbOriginalPos = hitboxButton.Position
+local hbFloat = TweenService:Create(
+	hitboxButton,
+	TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+	{
+		Position = hbOriginalPos + UDim2.new(0, 0, 0, -6),
+		Rotation = -2
+	}
+)
+hbFloat:Play()
+
+local isOn = false
+hitboxButton.MouseButton1Click:Connect(function()
+	isOn = not isOn
+	if isOn then
+		hitboxButton.Text = "Hitboxes: On"
+	else
+		hitboxButton.Text = "Hitboxes: Off"
+	end
+end)
