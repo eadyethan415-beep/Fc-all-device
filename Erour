@@ -1,0 +1,83 @@
+
+-- CRIMINALITY V1.3 - Animated Top Text
+-- Place inside StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Remove old GUI if it exists
+local oldGui = playerGui:FindFirstChild("CriminalityTitle")
+if oldGui then
+	oldGui:Destroy()
+end
+
+-- Screen GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CriminalityTitle"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+-- Main text
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Position = UDim2.new(0.5, 0, 0, 48)
+title.Size = UDim2.new(0.8, 0, 0, 55)
+title.BackgroundTransparency = 1
+title.Text = "CRIMINALITY V1.3"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBlack
+title.TextStrokeTransparency = 0.25
+title.TextStrokeColor3 = Color3.fromRGB(20, 0, 0)
+title.Rotation = 0
+title.Parent = screenGui
+
+-- Keep text readable on different screen sizes
+local textConstraint = Instance.new("UITextSizeConstraint")
+textConstraint.MinTextSize = 14
+textConstraint.MaxTextSize = 38
+textConstraint.Parent = title
+
+-- Smooth bobbing and rotation
+local tweenInfo = TweenInfo.new(
+	1.5,
+	Enum.EasingStyle.Sine,
+	Enum.EasingDirection.InOut,
+	-1,
+	true
+)
+
+local bobTween = TweenService:Create(title, tweenInfo, {
+	Position = UDim2.new(0.5, 0, 0, 58),
+	Rotation = 5
+})
+
+bobTween:Play()
+
+-- Gentle opposite rotation layered into the animation
+task.spawn(function()
+	while title.Parent do
+		local left = TweenService:Create(
+			title,
+			TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+			{Rotation = -5}
+		)
+		left:Play()
+		left.Completed:Wait()
+
+		if not title.Parent then break end
+
+		local right = TweenService:Create(
+			title,
+			TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+			{Rotation = 5}
+		)
+		right:Play()
+		right.Completed:Wait()
+	end
+end)
